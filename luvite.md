@@ -149,3 +149,9 @@ File: `src/proxy.ts`
 - Added new inspired template: city-grandeur for premium city-style wedding flow.
 - Added new reusable components: CityHero and ScheduleCard.
 - Registered both blocks in Puck config/categories and updated city template to use them.
+- Enhanced city template visual depth using ParallaxDiorama (multi-layer, scroll-reactive, mouse-hover parallax).
+- Added new reusable block: ParallaxDiorama and registered it under Effects & Decor.
+- Added ParallaxDiorama block for layered 3D-style hero (scroll + hover parallax + animated reveal + countdown).
+- Added PortraitCutout block using @imgly/background-removal for in-browser AI portrait cutouts.
+- Updated city-grandeur template to use richer layered hero and premium visual sections.
+- Added packages: @imgly/background-removal and onnxruntime-web.

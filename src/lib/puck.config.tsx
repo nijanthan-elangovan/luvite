@@ -12,6 +12,8 @@ import EventCard from "@/components/blocks/EventCard";
 import QuoteBlock from "@/components/blocks/QuoteBlock";
 import CityHero from "@/components/blocks/CityHero";
 import ScheduleCard from "@/components/blocks/ScheduleCard";
+import ParallaxDiorama from "@/components/blocks/ParallaxDiorama";
+import PortraitCutout from "@/components/blocks/PortraitCutout";
 import AnimationWrapper from "@/components/blocks/AnimationWrapper";
 import FontLoader from "@/components/blocks/FontLoader";
 
@@ -116,7 +118,7 @@ export const puckConfig: Config = {
     },
     effects: {
       title: "Effects & Decor",
-      components: ["FloatingPetals", "FloatingHearts"],
+      components: ["FloatingPetals", "FloatingHearts", "ParallaxDiorama", "PortraitCutout"],
       defaultExpanded: true,
     },
     advanced: {
@@ -858,6 +860,106 @@ export const puckConfig: Config = {
       render: ({ puck: _p, editMode: _e, id: _i, motion, ...props }) => (
         <AnimationWrapper motionConfig={motion}>
           <CityHero {...props} />
+        </AnimationWrapper>
+      ),
+    },
+
+    ParallaxDiorama: {
+      label: "Parallax Diorama",
+      fields: {
+        blessingText: { type: "text", label: "Blessing Line" },
+        familyText: { type: "text", label: "Family Line" },
+        title: { type: "text", label: "Title" },
+        subtitle: { type: "textarea", label: "Subtitle" },
+        targetDate: { type: "text", label: "Target Date (ISO)" },
+        themeColor: { type: "text", label: "Theme Color" },
+        height: { type: "number", label: "Height", min: 500, max: 1400 },
+        overlayColor: { type: "text", label: "Overlay Color (rgba)" },
+        layers: {
+          type: "array",
+          label: "Layers",
+          arrayFields: {
+            src: { type: "text", label: "Image URL" },
+            speed: { type: "number", label: "Speed", min: 0.1, max: 2, step: 0.1 },
+            opacity: { type: "number", label: "Opacity", min: 0.05, max: 1, step: 0.05 },
+            scale: { type: "number", label: "Scale", min: 0.8, max: 1.4, step: 0.01 },
+            rotate: { type: "number", label: "Hover Rotate", min: -8, max: 8, step: 0.1 },
+          },
+        },
+        motion: motionField,
+      },
+      defaultProps: {
+        blessingText: "Shree Ganeshaya Namah",
+        familyText: "WITH BLESSINGS OF OUR FAMILIES",
+        title: "ABHISHEK WEDS KANIKA",
+        subtitle: "Join us as we celebrate love, laughter, and a lifetime together.",
+        targetDate: "2027-02-21T18:00:00",
+        themeColor: "#c9a84c",
+        height: 900,
+        overlayColor: "rgba(10,8,6,0.62)",
+        layers: [
+          {
+            src: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=2200&q=80",
+            speed: 0.2,
+            opacity: 0.42,
+            scale: 1.1,
+            rotate: 0,
+          },
+          {
+            src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=2200&q=80",
+            speed: 0.35,
+            opacity: 0.32,
+            scale: 1.12,
+            rotate: -1,
+          },
+          {
+            src: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=2200&q=80",
+            speed: 0.5,
+            opacity: 0.4,
+            scale: 1.08,
+            rotate: 1,
+          },
+        ],
+        motion: defaultMotion,
+      },
+      render: ({ puck: _p, editMode: _e, id: _i, motion, ...props }) => (
+        <AnimationWrapper motionConfig={motion}>
+          <ParallaxDiorama {...props} />
+        </AnimationWrapper>
+      ),
+    },
+
+    PortraitCutout: {
+      label: "Portrait Cutout",
+      fields: {
+        imageUrl: { type: "text", label: "Image URL" },
+        width: { type: "number", label: "Width", min: 220, max: 900 },
+        autoProcess: {
+          type: "radio",
+          label: "Auto Process",
+          options: [
+            { label: "No", value: false },
+            { label: "Yes", value: true },
+          ],
+        },
+        buttonText: { type: "text", label: "Button Text" },
+        frameColor: { type: "text", label: "Frame Color" },
+        shadowColor: { type: "text", label: "Shadow Color" },
+        motion: motionField,
+      },
+      defaultProps: {
+        imageUrl:
+          "https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=900&q=80",
+        width: 380,
+        autoProcess: false,
+        buttonText: "Create Portrait Cutout",
+        frameColor: "#c9a84c",
+        shadowColor: "rgba(0,0,0,0.28)",
+        motion: defaultMotion,
+      },
+      render: ({ puck: _p, editMode: _e, id: _i, motion, ...props }) => (
+        <AnimationWrapper motionConfig={motion}>
+          <PortraitCutout {...props} />
         </AnimationWrapper>
       ),
     },
