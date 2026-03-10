@@ -444,6 +444,7 @@ export default function AdminPage() {
             },
           }}
           data={initialData}
+          onChange={(data) => setInitialData(data)}
           onPublish={handlePublish}
           plugins={[templatesPlugin]}
         />

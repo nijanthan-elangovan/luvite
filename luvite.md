@@ -167,3 +167,4 @@ File: `src/proxy.ts`
 - Updated editor copy to layman-friendly terms: "Invite Link" and "Invite link name" instead of slug wording.
 - Added helper microcopy: "This is where your invite will be visible:" with live `https://<name>.luvite.fun` preview.
 - Simplified publish feedback text for non-technical users (live success/error/info messaging in the same sidebar area).
+- Wired `Puck` `onChange` to persist live editor state (`setInitialData`) so repeated sidebar control updates (alignment/font/etc.) apply reliably.
