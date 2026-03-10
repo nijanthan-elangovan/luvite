@@ -13,6 +13,16 @@ const INITIAL_DATA: Data = {
 };
 
 type User = { id: number; name: string; email: string };
+type PublishNotice = { type: "success" | "error" | "info"; text: string } | null;
+
+function normalizeSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 /* ═══════════════════ Templates Plugin ═══════════════════ */
 
@@ -245,7 +255,7 @@ function ThreeDotMenu({ onDelete, onDuplicate }: { onDelete: () => void; onDupli
 export default function AdminPage() {
   const [slug, setSlug] = useState("");
   const [initialData, setInitialData] = useState<Data>(INITIAL_DATA);
-  const [publishStatus, setPublishStatus] = useState<string | null>(null);
+  const [publishNotice, setPublishNotice] = useState<PublishNotice>(null);
   const [user, setUser] = useState<User | null>(null);
   const [editorKey, setEditorKey] = useState(0);
 
@@ -272,7 +282,7 @@ export default function AdminPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((inv) => {
           if (inv?.data) { setInitialData(inv.data); setEditorKey((k) => k + 1); }
-          else setPublishStatus("Not found or not owned by you");
+          else setPublishNotice({ type: "error", text: "Not found or not owned by you" });
         });
     }
   }, []);
@@ -280,15 +290,18 @@ export default function AdminPage() {
   function loadTemplate(tpl: Template) {
     setInitialData(tpl.data);
     setEditorKey((k) => k + 1);
-    setPublishStatus(`Loaded: ${tpl.name}`);
-    setTimeout(() => setPublishStatus(null), 3000);
+    setPublishNotice({ type: "info", text: `Loaded: ${tpl.name}` });
   }
 
   const handlePublish = useCallback(
     async (data: Data) => {
-      const finalSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-      if (!finalSlug) { setPublishStatus("Enter a slug first"); setTimeout(() => setPublishStatus(null), 3000); return; }
-      setPublishStatus("Publishing...");
+      const finalSlug = normalizeSlug(slug);
+      if (!finalSlug) {
+        setPublishNotice({ type: "error", text: "Enter a slug first" });
+        return;
+      }
+      setPublishNotice({ type: "info", text: "Publishing..." });
+      setSlug(finalSlug);
       const res = await fetch("/api/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -301,29 +314,33 @@ export default function AdminPage() {
           host === "localhost"
             ? `/invite/${finalSlug}`
             : `https://${finalSlug}.${rootDomain}`;
-        setPublishStatus(`Published! → ${url}`);
+        setPublishNotice({ type: "success", text: `Published! -> ${url}` });
       } else {
         const p = await res.json().catch(() => ({}));
-        setPublishStatus(p.error || "Publish failed.");
+        setPublishNotice({ type: "error", text: p.error || "Publish failed." });
       }
-      setTimeout(() => setPublishStatus(null), 5000);
+      
     },
     [slug]
   );
 
   async function handleDelete() {
-    const s = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const s = normalizeSlug(slug);
     if (!s || !confirm(`Delete "${s}"?`)) return;
     const res = await fetch(`/api/invitations?slug=${encodeURIComponent(s)}`, { method: "DELETE" });
-    if (res.ok) { setInitialData(INITIAL_DATA); setSlug(""); setEditorKey((k) => k + 1); setPublishStatus("Deleted."); }
-    else setPublishStatus("Delete failed.");
-    setTimeout(() => setPublishStatus(null), 3000);
+    if (res.ok) {
+      setInitialData(INITIAL_DATA);
+      setSlug("");
+      setEditorKey((k) => k + 1);
+      setPublishNotice({ type: "success", text: "Deleted." });
+    } else setPublishNotice({ type: "error", text: "Delete failed." });
+    
   }
 
   function handleDuplicate() {
     setSlug(slug ? `${slug}-copy` : "copy");
-    setPublishStatus("Duplicated → change slug & publish");
-    setTimeout(() => setPublishStatus(null), 4000);
+    setPublishNotice({ type: "info", text: "Duplicated -> change slug and publish" });
+    
   }
 
   async function handleLogout() {
@@ -355,23 +372,7 @@ export default function AdminPage() {
           </svg>
         </a>
 
-        {publishStatus && (
-          <span style={{ fontSize: 12, color: "#C9A84C", maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {publishStatus}
-          </span>
-        )}
-
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, overflow: "visible" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8f8f8", borderRadius: 6, padding: "3px 8px", border: "1px solid #e5e5e5" }}>
-            <span style={{ fontSize: 11, color: "#999" }}>Slug:</span>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="your-invite"
-              style={{ border: "none", background: "transparent", outline: "none", fontSize: 12, width: 120, color: "#333" }}
-            />
-          </div>
           <ThreeDotMenu onDelete={handleDelete} onDuplicate={handleDuplicate} />
           <ProfileDropdown user={user} onLogout={handleLogout} />
         </div>
@@ -385,6 +386,58 @@ export default function AdminPage() {
             root: {
               label: "Invite",
               ...(puckConfig.root || {}),
+              fields: {
+                title: { type: "text", label: "Invite Title" },
+                slug: {
+                  type: "custom",
+                  label: "Slug",
+                  render: ({ value, onChange }) => {
+                    const currentValue = typeof value === "string" ? value : "";
+                    const shownValue = slug || currentValue;
+                    const normalized = normalizeSlug(shownValue);
+                    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+                    const statusColor =
+                      publishNotice?.type === "error"
+                        ? "#dc2626"
+                        : publishNotice?.type === "success"
+                          ? "#15803d"
+                          : "#7c6a2f";
+
+                    return (
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <label style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
+                          Invite URL Slug
+                        </label>
+                        <input
+                          type="text"
+                          value={shownValue}
+                          onChange={(e) => {
+                            const next = e.currentTarget.value;
+                            setSlug(next);
+                            onChange(next);
+                          }}
+                          placeholder="editablepart"
+                          style={{
+                            border: "1px solid #d1d5db",
+                            borderRadius: 8,
+                            padding: "9px 10px",
+                            fontSize: 13,
+                            outline: "none",
+                          }}
+                        />
+                        <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                          {normalized || "editablepart"}.{rootDomain}
+                        </div>
+                        {publishNotice ? (
+                          <div style={{ fontSize: 12, color: statusColor }}>
+                            {publishNotice.text}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  },
+                },
+              },
             },
           }}
           data={initialData}
@@ -395,3 +448,4 @@ export default function AdminPage() {
     </div>
   );
 }
+

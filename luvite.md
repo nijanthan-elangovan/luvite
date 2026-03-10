@@ -162,3 +162,5 @@ File: `src/proxy.ts`
 - Refactored `ParallaxDiorama` layer rendering into `ParallaxLayerItem` so Framer hooks are called in valid component scope.
 - Verified `npm run build` passes successfully on Next.js 16.1.6.
 - Verified no test runner is currently configured (`npm run test` fails with Missing script: `test`).
+- Moved slug editing from top toolbar into the Invite root sidebar field under title, with live `slug.luvite.fun` preview.
+- Routed publish/delete/duplicate status feedback to inline sidebar notices (success/error/info) near the slug editor.
