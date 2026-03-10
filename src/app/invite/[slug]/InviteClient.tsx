@@ -1,7 +1,6 @@
 "use client";
 
 import { Render, type Data } from "@puckeditor/core";
-import "@puckeditor/core/puck.css";
 import { puckConfig } from "@/lib/puck.config";
 
 /**

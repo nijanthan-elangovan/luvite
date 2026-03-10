@@ -168,3 +168,4 @@ File: `src/proxy.ts`
 - Added helper microcopy: "This is where your invite will be visible:" with live `https://<name>.luvite.fun` preview.
 - Simplified publish feedback text for non-technical users (live success/error/info messaging in the same sidebar area).
 - Wired `Puck` `onChange` to persist live editor state (`setInitialData`) so repeated sidebar control updates (alignment/font/etc.) apply reliably.
+- Fixed public invite scroll clipping by removing full Puck editor stylesheet import from `InviteClient`; published pages now avoid editor-only global overflow/layout constraints.
