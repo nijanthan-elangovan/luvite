@@ -1,0 +1,278 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type User = { id: number; name: string; email: string };
+type Invitation = { slug: string; created_at: string; updated_at: string };
+type RSVP = {
+  id: number;
+  invitation_slug: string;
+  name: string;
+  email: string;
+  attending: string;
+  meal: string;
+  message: string;
+  created_at: string;
+};
+
+type Tab = "invitations" | "rsvps" | "settings";
+
+export default function ProfilePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [rsvps, setRsvps] = useState<RSVP[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("invitations");
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            window.location.href = "/login?next=/profile";
+            return null;
+          }
+          throw new Error("Failed to load profile");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data) return;
+        setUser(data.user);
+        setInvitations(data.invitations || []);
+        setRsvps(data.rsvps || []);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
+  }, []);
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "invitations", label: `Invitations (${invitations.length})` },
+    { key: "rsvps", label: `RSVPs (${rsvps.length})` },
+    { key: "settings", label: "Settings" },
+  ];
+
+  return (
+    <main className="min-h-screen bg-[var(--background)] px-4 py-10">
+      <div className="mx-auto max-w-5xl space-y-6">
+        {/* Top bar */}
+        <div className="flex items-center gap-3">
+          <a
+            href="/editor"
+            className="flex items-center gap-1.5 rounded-full border border-gold/30 px-4 py-2 text-sm font-medium text-gold transition hover:bg-gold/5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            Editor
+          </a>
+          <a
+            href="/"
+            className="rounded-full border border-gold/30 px-4 py-2 text-sm font-medium text-gold transition hover:bg-gold/5"
+          >
+            Home
+          </a>
+        </div>
+
+        {/* Profile header */}
+        <div className="rounded-xl border border-gold/20 bg-white p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-3xl font-bold text-charcoal">Profile</h1>
+              {user ? (
+                <p className="mt-1 text-charcoal/60">
+                  {user.name} &middot; {user.email}
+                </p>
+              ) : (
+                <p className="mt-1 text-charcoal/60">Loading...</p>
+              )}
+            </div>
+            <a
+              href="/editor"
+              className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-white transition hover:bg-gold-dark"
+            >
+              + New Invitation
+            </a>
+          </div>
+          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-xl border border-gold/20 bg-white p-1">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition ${
+                tab === t.key
+                  ? "bg-gold text-white shadow-sm"
+                  : "text-charcoal/60 hover:bg-gold/5 hover:text-charcoal"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="rounded-xl border border-gold/20 bg-white p-6">
+          {tab === "invitations" && <InvitationsTab invitations={invitations} />}
+          {tab === "rsvps" && <RSVPsTab rsvps={rsvps} />}
+          {tab === "settings" && <SettingsTab user={user} />}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function InvitationsTab({ invitations }: { invitations: Invitation[] }) {
+  if (invitations.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-charcoal/50">No invitations yet.</p>
+        <a
+          href="/editor"
+          className="mt-4 inline-block rounded-full bg-gold px-6 py-2 text-sm font-semibold text-white"
+        >
+          Create Your First
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead>
+          <tr className="border-b border-gold/20 text-charcoal/60">
+            <th className="py-2.5 font-medium">Slug</th>
+            <th className="py-2.5 font-medium">Last Updated</th>
+            <th className="py-2.5 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invitations.map((inv) => (
+            <tr key={inv.slug} className="border-b border-gold/10 last:border-0">
+              <td className="py-3 font-medium text-charcoal">{inv.slug}</td>
+              <td className="py-3 text-charcoal/60">{new Date(inv.updated_at).toLocaleString()}</td>
+              <td className="py-3">
+                <a href={`/editor?slug=${inv.slug}`} className="mr-3 text-gold hover:underline">
+                  Edit
+                </a>
+                <a href={`/invite/${inv.slug}`} className="text-gold hover:underline">
+                  View
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RSVPsTab({ rsvps }: { rsvps: RSVP[] }) {
+  if (rsvps.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-charcoal/50">No RSVP submissions yet.</p>
+        <p className="mt-1 text-sm text-charcoal/40">RSVPs will appear here once guests respond.</p>
+      </div>
+    );
+  }
+
+  const attending = rsvps.filter((r) => r.attending === "yes").length;
+  const declined = rsvps.filter((r) => r.attending === "no").length;
+  const maybe = rsvps.length - attending - declined;
+
+  return (
+    <div>
+      {/* Summary stats */}
+      <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="rounded-lg bg-emerald-50 p-4 text-center">
+          <p className="text-2xl font-bold text-emerald-600">{attending}</p>
+          <p className="text-xs text-emerald-600/70">Attending</p>
+        </div>
+        <div className="rounded-lg bg-red-50 p-4 text-center">
+          <p className="text-2xl font-bold text-red-500">{declined}</p>
+          <p className="text-xs text-red-500/70">Declined</p>
+        </div>
+        <div className="rounded-lg bg-amber-50 p-4 text-center">
+          <p className="text-2xl font-bold text-amber-600">{maybe}</p>
+          <p className="text-xs text-amber-600/70">Maybe</p>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-gold/20 text-charcoal/60">
+              <th className="py-2.5 font-medium">Invitation</th>
+              <th className="py-2.5 font-medium">Guest</th>
+              <th className="py-2.5 font-medium">Email</th>
+              <th className="py-2.5 font-medium">Status</th>
+              <th className="py-2.5 font-medium">Meal</th>
+              <th className="py-2.5 font-medium">Message</th>
+              <th className="py-2.5 font-medium">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rsvps.map((rsvp) => (
+              <tr key={rsvp.id} className="border-b border-gold/10 last:border-0">
+                <td className="py-3 text-charcoal/60">{rsvp.invitation_slug || "-"}</td>
+                <td className="py-3 font-medium text-charcoal">{rsvp.name}</td>
+                <td className="py-3 text-charcoal/60">{rsvp.email}</td>
+                <td className="py-3">
+                  <span
+                    className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      rsvp.attending === "yes"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : rsvp.attending === "no"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {rsvp.attending}
+                  </span>
+                </td>
+                <td className="py-3 text-charcoal/60">{rsvp.meal || "-"}</td>
+                <td className="max-w-[200px] truncate py-3 text-charcoal/60">{rsvp.message || "-"}</td>
+                <td className="py-3 text-charcoal/60">{new Date(rsvp.created_at).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function SettingsTab({ user }: { user: User | null }) {
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="font-display text-lg font-bold text-charcoal">Account</h3>
+        {user && (
+          <div className="mt-3 space-y-2 text-sm">
+            <p><span className="text-charcoal/50">Name:</span> <span className="text-charcoal">{user.name}</span></p>
+            <p><span className="text-charcoal/50">Email:</span> <span className="text-charcoal">{user.email}</span></p>
+          </div>
+        )}
+      </div>
+
+      <hr className="border-gold/10" />
+
+      <div>
+        <h3 className="font-display text-lg font-bold text-charcoal">Danger Zone</h3>
+        <button
+          onClick={handleLogout}
+          className="mt-3 rounded-full border border-red-300 px-5 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+        >
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
