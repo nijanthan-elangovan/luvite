@@ -164,3 +164,6 @@ File: `src/proxy.ts`
 - Verified no test runner is currently configured (`npm run test` fails with Missing script: `test`).
 - Moved slug editing from top toolbar into the Invite root sidebar field under title, with live `slug.luvite.fun` preview.
 - Routed publish/delete/duplicate status feedback to inline sidebar notices (success/error/info) near the slug editor.
+- Updated editor copy to layman-friendly terms: "Invite Link" and "Invite link name" instead of slug wording.
+- Added helper microcopy: "This is where your invite will be visible:" with live `https://<name>.luvite.fun` preview.
+- Simplified publish feedback text for non-technical users (live success/error/info messaging in the same sidebar area).

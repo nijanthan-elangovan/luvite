@@ -297,10 +297,10 @@ export default function AdminPage() {
     async (data: Data) => {
       const finalSlug = normalizeSlug(slug);
       if (!finalSlug) {
-        setPublishNotice({ type: "error", text: "Enter a slug first" });
+        setPublishNotice({ type: "error", text: "Add your invite link name first." });
         return;
       }
-      setPublishNotice({ type: "info", text: "Publishing..." });
+      setPublishNotice({ type: "info", text: "Publishing your invite..." });
       setSlug(finalSlug);
       const res = await fetch("/api/invitations", {
         method: "POST",
@@ -314,10 +314,10 @@ export default function AdminPage() {
           host === "localhost"
             ? `/invite/${finalSlug}`
             : `https://${finalSlug}.${rootDomain}`;
-        setPublishNotice({ type: "success", text: `Published! -> ${url}` });
+        setPublishNotice({ type: "success", text: `Your invite is live: ${url}` });
       } else {
         const p = await res.json().catch(() => ({}));
-        setPublishNotice({ type: "error", text: p.error || "Publish failed." });
+        setPublishNotice({ type: "error", text: p.error || "Could not publish. Please try again." });
       }
       
     },
@@ -339,7 +339,7 @@ export default function AdminPage() {
 
   function handleDuplicate() {
     setSlug(slug ? `${slug}-copy` : "copy");
-    setPublishNotice({ type: "info", text: "Duplicated -> change slug and publish" });
+    setPublishNotice({ type: "info", text: "Copied. Update the invite link name, then publish." });
     
   }
 
@@ -390,7 +390,7 @@ export default function AdminPage() {
                 title: { type: "text", label: "Invite Title" },
                 slug: {
                   type: "custom",
-                  label: "Slug",
+                  label: "Invite Link",
                   render: ({ value, onChange }) => {
                     const currentValue = typeof value === "string" ? value : "";
                     const shownValue = slug || currentValue;
@@ -406,7 +406,7 @@ export default function AdminPage() {
                     return (
                       <div style={{ display: "grid", gap: 8 }}>
                         <label style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
-                          Invite URL Slug
+                          Invite link name
                         </label>
                         <input
                           type="text"
@@ -416,7 +416,7 @@ export default function AdminPage() {
                             setSlug(next);
                             onChange(next);
                           }}
-                          placeholder="editablepart"
+                          placeholder="meera-arjun"
                           style={{
                             border: "1px solid #d1d5db",
                             borderRadius: 8,
@@ -425,8 +425,11 @@ export default function AdminPage() {
                             outline: "none",
                           }}
                         />
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>
+                          This is where your invite will be visible:
+                        </div>
                         <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                          {normalized || "editablepart"}.{rootDomain}
+                          https://{normalized || "meera-arjun"}.{rootDomain}
                         </div>
                         {publishNotice ? (
                           <div style={{ fontSize: 12, color: statusColor }}>
