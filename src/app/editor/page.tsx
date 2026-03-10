@@ -296,7 +296,11 @@ export default function AdminPage() {
       });
       if (res.ok) {
         const host = window.location.hostname;
-        const url = host === "localhost" ? `/invite/${finalSlug}` : `${finalSlug}.luvite.fun`;
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+        const url =
+          host === "localhost"
+            ? `/invite/${finalSlug}`
+            : `https://${finalSlug}.${rootDomain}`;
         setPublishStatus(`Published! → ${url}`);
       } else {
         const p = await res.json().catch(() => ({}));

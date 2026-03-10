@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { RowDataPacket } from "mysql2";
 import pool from "@/lib/db";
 import InviteClient from "./InviteClient";
+import type { Data } from "@puckeditor/core";
 
 type InviteData = {
   content?: Array<{ type?: string; props?: Record<string, unknown> }>;
@@ -10,7 +11,7 @@ type InviteData = {
 function normalizeImageUrl(image: string | null | undefined) {
   if (!image) return null;
   if (image.startsWith("http://") || image.startsWith("https://")) return image;
-  return `${process.env.NEXT_PUBLIC_SITE_URL || "https://luvite.in"}${image.startsWith("/") ? image : `/${image}`}`;
+  return `${process.env.NEXT_PUBLIC_SITE_URL || "https://luvite.fun"}${image.startsWith("/") ? image : `/${image}`}`;
 }
 
 function extractInviteMeta(data: InviteData | null, slug: string) {
@@ -40,6 +41,23 @@ function extractInviteMeta(data: InviteData | null, slug: string) {
   return { title, description, image };
 }
 
+async function getInvitationData(slug: string): Promise<Data | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "SELECT data FROM invitations WHERE slug = ? LIMIT 1",
+    [slug]
+  );
+
+  if (!rows.length) return null;
+
+  const raw = rows[0].data;
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parsed as Data;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -47,19 +65,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
 
-  const [rows] = await pool.query<RowDataPacket[]>(
-    "SELECT data FROM invitations WHERE slug = ? LIMIT 1",
-    [slug]
-  );
-
-  const parsed = rows.length
-    ? (typeof rows[0].data === "string"
-        ? JSON.parse(rows[0].data)
-        : rows[0].data)
-    : null;
+  let parsed: Data | null = null;
+  try {
+    parsed = await getInvitationData(slug);
+  } catch {
+    parsed = null;
+  }
 
   const { title, description, image } = extractInviteMeta(parsed, slug);
-  const canonical = `${process.env.NEXT_PUBLIC_SITE_URL || "https://luvite.in"}/invite/${slug}`;
+  const canonical = `${process.env.NEXT_PUBLIC_SITE_URL || "https://luvite.fun"}/invite/${slug}`;
 
   return {
     title,
@@ -97,5 +111,28 @@ export default async function InvitePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  return <InviteClient slug={slug} />;
+  const data = await getInvitationData(slug);
+
+  if (!data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+        <div className="text-center">
+          <h1 className="font-display text-4xl font-bold text-charcoal">
+            Invitation Not Found
+          </h1>
+          <p className="mt-4 text-charcoal/60">
+            This invitation link doesn&apos;t exist or has been removed.
+          </p>
+          <a
+            href="/"
+            className="mt-6 inline-block rounded-full border border-gold/30 px-6 py-2 text-sm text-gold transition-colors hover:bg-gold hover:text-white"
+          >
+            Create Your Own
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return <InviteClient data={data} />;
 }
