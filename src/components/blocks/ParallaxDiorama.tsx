@@ -1,6 +1,12 @@
 "use client";
 
-import { motion, useMotionValue, useScroll, useTransform } from "framer-motion";
+import {
+  motion,
+  useMotionValue,
+  useScroll,
+  useTransform,
+  type MotionValue,
+} from "framer-motion";
 import { useRef, type MouseEvent } from "react";
 import Countdown from "@/components/blocks/Countdown";
 
@@ -62,6 +68,54 @@ const defaultLayers: ParallaxLayer[] = [
   },
 ];
 
+type ParallaxLayerItemProps = {
+  layer: ParallaxLayer;
+  index: number;
+  scrollYProgress: MotionValue<number>;
+  mouseX: MotionValue<number>;
+  mouseY: MotionValue<number>;
+};
+
+function ParallaxLayerItem({
+  layer,
+  index,
+  scrollYProgress,
+  mouseX,
+  mouseY,
+}: ParallaxLayerItemProps) {
+  const speed = layer.speed ?? (index + 1) * 0.2;
+  const yScroll = useTransform(scrollYProgress, [0, 1], [0, -120 * speed]);
+  const xHover = useTransform(mouseX, [-0.5, 0.5], [-16 * speed, 16 * speed]);
+  const yHover = useTransform(mouseY, [-0.5, 0.5], [-12 * speed, 12 * speed]);
+  const rotate = useTransform(
+    mouseX,
+    [-0.5, 0.5],
+    [-(layer.rotate ?? 0), layer.rotate ?? 0]
+  );
+
+  return (
+    <motion.img
+      src={layer.src}
+      alt=""
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        inset: "-3%",
+        width: "106%",
+        height: "106%",
+        objectFit: "cover",
+        opacity: layer.opacity ?? 0.3,
+        scale: layer.scale ?? 1.08,
+        y: yScroll,
+        x: xHover,
+        rotate,
+        translateY: yHover,
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
 export default function ParallaxDiorama({
   blessingText = "Shree Ganeshaya Namah",
   familyText = "WITH BLESSINGS OF OUR FAMILIES",
@@ -109,44 +163,16 @@ export default function ParallaxDiorama({
         justifyContent: "center",
       }}
     >
-      {layers.map((layer, index) => {
-        const speed = layer.speed ?? (index + 1) * 0.2;
-        const yScroll = useTransform(
-          scrollYProgress,
-          [0, 1],
-          [0, -120 * speed]
-        );
-        const xHover = useTransform(mouseX, [-0.5, 0.5], [-16 * speed, 16 * speed]);
-        const yHover = useTransform(mouseY, [-0.5, 0.5], [-12 * speed, 12 * speed]);
-        const rotate = useTransform(
-          mouseX,
-          [-0.5, 0.5],
-          [-(layer.rotate ?? 0), layer.rotate ?? 0]
-        );
-
-        return (
-          <motion.img
-            key={`${layer.src}-${index}`}
-            src={layer.src}
-            alt=""
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              inset: "-3%",
-              width: "106%",
-              height: "106%",
-              objectFit: "cover",
-              opacity: layer.opacity ?? 0.3,
-              scale: layer.scale ?? 1.08,
-              y: yScroll,
-              x: xHover,
-              rotate,
-              translateY: yHover,
-              pointerEvents: "none",
-            }}
-          />
-        );
-      })}
+      {layers.map((layer, index) => (
+        <ParallaxLayerItem
+          key={`${layer.src}-${index}`}
+          layer={layer}
+          index={index}
+          scrollYProgress={scrollYProgress}
+          mouseX={mouseX}
+          mouseY={mouseY}
+        />
+      ))}
 
       <div
         style={{

@@ -1,6 +1,6 @@
 # Luvite Knowledge Base (`luvite.md`)
 
-Last updated: 2026-03-10
+Last updated: 2026-03-11
 Owner: Luvite engineering
 
 ## Purpose
@@ -155,3 +155,10 @@ File: `src/proxy.ts`
 - Added PortraitCutout block using @imgly/background-removal for in-browser AI portrait cutouts.
 - Updated city-grandeur template to use richer layered hero and premium visual sections.
 - Added packages: @imgly/background-removal and onnxruntime-web.
+
+### 2026-03-11
+- Fixed build blocker in `PortraitCutout` by switching to named import: `removeBackground` from `@imgly/background-removal`.
+- Added object URL cleanup in `PortraitCutout` to avoid memory leaks when regenerating cutouts.
+- Refactored `ParallaxDiorama` layer rendering into `ParallaxLayerItem` so Framer hooks are called in valid component scope.
+- Verified `npm run build` passes successfully on Next.js 16.1.6.
+- Verified no test runner is currently configured (`npm run test` fails with Missing script: `test`).

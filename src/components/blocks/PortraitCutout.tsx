@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import removeBackground from "@imgly/background-removal";
+import { removeBackground } from "@imgly/background-removal";
 
 export interface PortraitCutoutProps {
   imageUrl?: string;
@@ -25,8 +25,15 @@ export default function PortraitCutout({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (processedUrl) URL.revokeObjectURL(processedUrl);
+    };
+  }, [processedUrl]);
+
+  useEffect(() => {
     if (!autoProcess) return;
     void processCutout();
+    // Auto processing depends on image source updates.
   }, [autoProcess, imageUrl]);
 
   async function processCutout() {
@@ -39,6 +46,7 @@ export default function PortraitCutout({
       const blob = await removeBackground(imageUrl, {
         model: "isnet_fp16",
       });
+      if (processedUrl) URL.revokeObjectURL(processedUrl);
       const url = URL.createObjectURL(blob);
       setProcessedUrl(url);
     } catch (e) {
