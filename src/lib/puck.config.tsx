@@ -10,6 +10,8 @@ import FloatingPetals from "@/components/blocks/FloatingPetals";
 import PhotoGallery from "@/components/blocks/PhotoGallery";
 import EventCard from "@/components/blocks/EventCard";
 import QuoteBlock from "@/components/blocks/QuoteBlock";
+import CityHero from "@/components/blocks/CityHero";
+import ScheduleCard from "@/components/blocks/ScheduleCard";
 import AnimationWrapper from "@/components/blocks/AnimationWrapper";
 import FontLoader from "@/components/blocks/FontLoader";
 
@@ -109,7 +111,7 @@ export const puckConfig: Config = {
     },
     widgets: {
       title: "Widgets",
-      components: ["RSVPForm", "Countdown", "GoogleMap", "EventCard", "PhotoGallery"],
+      components: ["RSVPForm", "Countdown", "GoogleMap", "EventCard", "ScheduleCard", "PhotoGallery"],
       defaultExpanded: true,
     },
     effects: {
@@ -119,7 +121,7 @@ export const puckConfig: Config = {
     },
     advanced: {
       title: "Advanced",
-      components: ["Hero3D", "InteractiveTimeline", "AudioEngine"],
+      components: ["CityHero", "Hero3D", "InteractiveTimeline", "AudioEngine"],
     },
   },
   components: {
@@ -664,6 +666,41 @@ export const puckConfig: Config = {
       ),
     },
 
+    ScheduleCard: {
+      label: "Schedule Card",
+      fields: {
+        eventName: { type: "text", label: "Event Name" },
+        date: { type: "text", label: "Date" },
+        time: { type: "text", label: "Time" },
+        venue: { type: "text", label: "Venue" },
+        details: { type: "textarea", label: "Details" },
+        routeLink: { type: "text", label: "Route Link" },
+        routeText: { type: "text", label: "Route Button Text" },
+        accentColor: { type: "text", label: "Accent Color" },
+        backgroundColor: { type: "text", label: "Background Color" },
+        textColor: { type: "text", label: "Text Color" },
+        motion: motionField,
+      },
+      defaultProps: {
+        eventName: "Mehendi",
+        date: "20 Feb 2027",
+        time: "11:00 AM",
+        venue: "The Grand Orchid, Jaipur",
+        details: "A colorful celebration with music and close family.",
+        routeLink: "https://maps.google.com",
+        routeText: "See the route",
+        accentColor: "#c9a84c",
+        backgroundColor: "#f9f4ea",
+        textColor: "#2C2C2C",
+        motion: defaultMotion,
+      },
+      render: ({ puck: _p, editMode: _e, id: _i, motion, ...props }) => (
+        <AnimationWrapper motionConfig={motion}>
+          <ScheduleCard {...props} />
+        </AnimationWrapper>
+      ),
+    },
+
     PhotoGallery: {
       label: "Photo Gallery",
       fields: {
@@ -789,6 +826,40 @@ export const puckConfig: Config = {
         },
         motion: motionField,
       },
+    },
+
+    CityHero: {
+      label: "City Hero",
+      fields: {
+        blessingText: { type: "text", label: "Blessing Line" },
+        familyText: { type: "text", label: "Family Line" },
+        title: { type: "text", label: "Title" },
+        subtitle: { type: "textarea", label: "Subtitle" },
+        targetDate: { type: "text", label: "Target Date (ISO)" },
+        themeColor: { type: "text", label: "Theme Color" },
+        backgroundImage: { type: "text", label: "Background Image URL" },
+        overlayColor: { type: "text", label: "Overlay Color (rgba)" },
+        minHeight: { type: "text", label: "Min Height" },
+        motion: motionField,
+      },
+      defaultProps: {
+        blessingText: "ॐ श्री गणेशाय नम",
+        familyText: "WITH BLESSINGS OF OUR FAMILIES",
+        title: "ABHISHEK WEDS KANIKA",
+        subtitle: "Join us as we celebrate love, laughter, and a lifetime together.",
+        targetDate: "2027-02-21T18:00:00",
+        themeColor: "#c9a84c",
+        backgroundImage:
+          "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=1800&q=80",
+        overlayColor: "rgba(12,10,8,0.64)",
+        minHeight: "100vh",
+        motion: defaultMotion,
+      },
+      render: ({ puck: _p, editMode: _e, id: _i, motion, ...props }) => (
+        <AnimationWrapper motionConfig={motion}>
+          <CityHero {...props} />
+        </AnimationWrapper>
+      ),
     },
 
     InteractiveTimeline: {
