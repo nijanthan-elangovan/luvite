@@ -169,3 +169,4 @@ File: `src/proxy.ts`
 - Simplified publish feedback text for non-technical users (live success/error/info messaging in the same sidebar area).
 - Wired `Puck` `onChange` to persist live editor state (`setInitialData`) so repeated sidebar control updates (alignment/font/etc.) apply reliably.
 - Fixed public invite scroll clipping by removing full Puck editor stylesheet import from `InviteClient`; published pages now avoid editor-only global overflow/layout constraints.
+- Adjusted editor viewport layout (`100dvh` root + scrollable editor content area) to prevent mid-page cutoff while scrolling long templates in `/editor`.
