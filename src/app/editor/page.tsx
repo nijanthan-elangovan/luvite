@@ -4,7 +4,7 @@ import { Puck, type Data, type Plugin } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import { puckConfig } from "@/lib/puck.config";
 import { templates, type Template } from "@/lib/templates";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useToast } from "@/components/Toast";
 
 const INITIAL_DATA: Data = {
@@ -249,10 +249,105 @@ function ThreeDotMenu({ onDelete, onDuplicate }: { onDelete: () => void; onDupli
   );
 }
 
+/* ═══════════════════ Slug Field (stable) ═══════════════════ */
+
+function SlugField({
+  slugRef,
+  publishNotice,
+  isPublishing,
+  onCopyLink,
+}: {
+  slugRef: MutableRefObject<string>;
+  publishNotice: { type: "success" | "error" | "info"; text: string } | null;
+  isPublishing: boolean;
+  onCopyLink: () => void;
+}) {
+  const [local, setLocal] = useState(slugRef.current);
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+  const normalized = normalizeSlug(local);
+  const statusColor =
+    publishNotice?.type === "error"
+      ? "#dc2626"
+      : publishNotice?.type === "success"
+        ? "#15803d"
+        : "#7c6a2f";
+
+  // Sync from outside (e.g. loading a slug, duplicate)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (slugRef.current !== local) setLocal(slugRef.current);
+    }, 200);
+    return () => clearInterval(interval);
+  });
+
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <label style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
+        Invite link name
+      </label>
+      <input
+        type="text"
+        value={local}
+        onChange={(e) => {
+          const next = e.currentTarget.value;
+          setLocal(next);
+          slugRef.current = next;
+        }}
+        placeholder="meera-arjun"
+        style={{
+          border: "1px solid #d1d5db",
+          borderRadius: 8,
+          padding: "9px 10px",
+          fontSize: 13,
+          outline: "none",
+        }}
+      />
+      {local && !/^[a-z0-9-]*$/.test(local) && (
+        <div style={{ fontSize: 11, color: "#d97706" }}>
+          Only lowercase letters, numbers, and hyphens allowed
+        </div>
+      )}
+      <div style={{ fontSize: 12, color: "#6b7280" }}>
+        Your invite will be visible at:
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ fontSize: 12, color: "#9ca3af", flex: 1 }}>
+          https://{normalized || "meera-arjun"}.{rootDomain}
+        </div>
+        {normalized && (
+          <button
+            type="button"
+            onClick={onCopyLink}
+            style={{
+              background: "none",
+              border: "1px solid #d1d5db",
+              borderRadius: 6,
+              padding: "3px 8px",
+              cursor: "pointer",
+              fontSize: 11,
+              color: "#6b7280",
+            }}
+          >
+            Copy
+          </button>
+        )}
+      </div>
+      {publishNotice ? (
+        <div style={{ fontSize: 12, color: statusColor }}>
+          {isPublishing && (
+            <span style={{ display: "inline-block", width: 12, height: 12, border: "2px solid #d1d5db", borderTopColor: statusColor, borderRadius: "50%", animation: "spin 0.8s linear infinite", marginRight: 6, verticalAlign: "middle" }} />
+          )}
+          {publishNotice.text}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /* ═══════════════════ Main Page ═══════════════════ */
 
 export default function AdminPage() {
-  const [slug, setSlug] = useState("");
+  const slugRef = useRef("");
   const [initialData, setInitialData] = useState<Data>(INITIAL_DATA);
   const [publishNotice, setPublishNotice] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -285,7 +380,7 @@ export default function AdminPage() {
     }
     const s = params.get("slug");
     if (s) {
-      setSlug(s);
+      slugRef.current = s;
       fetch(`/api/invitations?slug=${encodeURIComponent(s)}&ownerOnly=1`)
         .then((r) => (r.ok ? r.json() : null))
         .then((inv) => {
@@ -311,7 +406,7 @@ export default function AdminPage() {
 
   const handlePublish = useCallback(
     async (data: Data) => {
-      const finalSlug = normalizeSlug(slug);
+      const finalSlug = normalizeSlug(slugRef.current);
       if (!finalSlug) {
         toast("error", "Enter an invite link name before publishing");
         setPublishNotice({ type: "error", text: "Add your invite link name first." });
@@ -319,7 +414,7 @@ export default function AdminPage() {
       }
       setIsPublishing(true);
       setPublishNotice({ type: "info", text: "Publishing..." });
-      setSlug(finalSlug);
+      slugRef.current = finalSlug;
       try {
         const res = await fetch("/api/invitations", {
           method: "POST",
@@ -348,17 +443,17 @@ export default function AdminPage() {
         setIsPublishing(false);
       }
     },
-    [slug, toast]
+    [toast]
   );
 
   async function handleDelete() {
-    const s = normalizeSlug(slug);
+    const s = normalizeSlug(slugRef.current);
     if (!s || !confirm(`Delete "${s}"? This can't be undone.`)) return;
     try {
       const res = await fetch(`/api/invitations?slug=${encodeURIComponent(s)}`, { method: "DELETE" });
       if (res.ok) {
         setInitialData(INITIAL_DATA);
-        setSlug("");
+        slugRef.current = "";
         setEditorKey((k) => k + 1);
         toast("success", "Invitation deleted");
       } else {
@@ -370,7 +465,7 @@ export default function AdminPage() {
   }
 
   function handleDuplicate() {
-    setSlug(slug ? `${slug}-copy` : "copy");
+    slugRef.current = slugRef.current ? `${slugRef.current}-copy` : "copy";
     toast("info", "Duplicated. Change the link name, then publish.");
   }
 
@@ -384,7 +479,7 @@ export default function AdminPage() {
   }
 
   function handleCopyLink() {
-    const finalSlug = normalizeSlug(slug);
+    const finalSlug = normalizeSlug(slugRef.current);
     if (!finalSlug) {
       toast("error", "Set an invite link name first");
       return;
@@ -456,81 +551,14 @@ export default function AdminPage() {
                 slug: {
                   type: "custom",
                   label: "Invite Link",
-                  render: ({ value, onChange }) => {
-                    const currentValue = typeof value === "string" ? value : "";
-                    const shownValue = slug || currentValue;
-                    const normalized = normalizeSlug(shownValue);
-                    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
-                    const statusColor =
-                      publishNotice?.type === "error"
-                        ? "#dc2626"
-                        : publishNotice?.type === "success"
-                          ? "#15803d"
-                          : "#7c6a2f";
-
-                    return (
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <label style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
-                          Invite link name
-                        </label>
-                        <input
-                          type="text"
-                          value={shownValue}
-                          onChange={(e) => {
-                            const next = e.currentTarget.value;
-                            setSlug(next);
-                            onChange(next);
-                          }}
-                          placeholder="meera-arjun"
-                          style={{
-                            border: "1px solid #d1d5db",
-                            borderRadius: 8,
-                            padding: "9px 10px",
-                            fontSize: 13,
-                            outline: "none",
-                          }}
-                        />
-                        {shownValue && !/^[a-z0-9-]*$/.test(shownValue) && (
-                          <div style={{ fontSize: 11, color: "#d97706" }}>
-                            Only lowercase letters, numbers, and hyphens allowed
-                          </div>
-                        )}
-                        <div style={{ fontSize: 12, color: "#6b7280" }}>
-                          Your invite will be visible at:
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <div style={{ fontSize: 12, color: "#9ca3af", flex: 1 }}>
-                            https://{normalized || "meera-arjun"}.{rootDomain}
-                          </div>
-                          {normalized && (
-                            <button
-                              type="button"
-                              onClick={handleCopyLink}
-                              style={{
-                                background: "none",
-                                border: "1px solid #d1d5db",
-                                borderRadius: 6,
-                                padding: "3px 8px",
-                                cursor: "pointer",
-                                fontSize: 11,
-                                color: "#6b7280",
-                              }}
-                            >
-                              Copy
-                            </button>
-                          )}
-                        </div>
-                        {publishNotice ? (
-                          <div style={{ fontSize: 12, color: statusColor }}>
-                            {isPublishing && (
-                              <span style={{ display: "inline-block", width: 12, height: 12, border: "2px solid #d1d5db", borderTopColor: statusColor, borderRadius: "50%", animation: "spin 0.8s linear infinite", marginRight: 6, verticalAlign: "middle" }} />
-                            )}
-                            {publishNotice.text}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  },
+                  render: () => (
+                    <SlugField
+                      slugRef={slugRef}
+                      publishNotice={publishNotice}
+                      isPublishing={isPublishing}
+                      onCopyLink={handleCopyLink}
+                    />
+                  ),
                 },
               },
             },
