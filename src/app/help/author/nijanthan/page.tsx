@@ -58,11 +58,32 @@ const articles = [
     date: "2026-03-10",
   },
   {
-    id: "custom-domain",
-    title: "How custom links work",
+    id: "custom-links",
+    title: "How invitation links work",
     description: "Understand subdomains, slugs, and how your invitation URL is structured.",
     category: "Getting Started",
     date: "2026-03-03",
+  },
+  {
+    id: "custom-domain",
+    title: "Connect a custom domain",
+    description: "Point your own domain to a Luvite invitation with a CNAME record.",
+    category: "Features",
+    date: "2026-03-14",
+  },
+  {
+    id: "profile",
+    title: "Manage invitations from your profile",
+    description: "View all your invitations, check RSVP responses, copy links, and see domain status.",
+    category: "Creating Invitations",
+    date: "2026-03-12",
+  },
+  {
+    id: "duplicate-delete",
+    title: "Duplicate or delete an invitation",
+    description: "Copy an existing design to reuse it, or remove an invitation you no longer need.",
+    category: "Creating Invitations",
+    date: "2026-03-11",
   },
 ];
 

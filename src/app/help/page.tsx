@@ -326,8 +326,8 @@ const articles: Article[] = [
     ),
   },
   {
-    id: "custom-domain",
-    title: "How custom links work",
+    id: "custom-links",
+    title: "How invitation links work",
     description: "Understand subdomains, slugs, and how your invitation URL is structured.",
     category: "Getting Started",
     date: "2026-03-03",
@@ -351,6 +351,98 @@ const articles: Article[] = [
         </ul>
         <h3>Can I change the slug later?</h3>
         <p>Yes. Open the editor, change the slug in the sidebar, and publish again. The old URL will stop working and the new one takes over. You&apos;ll need to re-share the updated link with your guests.</p>
+        <h3>Want your own domain?</h3>
+        <p>You can also connect a custom domain like <code>invite.yourname.com</code> to your invitation. See the <strong>Connect a custom domain</strong> article for the full walkthrough.</p>
+      </>
+    ),
+  },
+  {
+    id: "custom-domain",
+    title: "Connect a custom domain",
+    description: "Point your own domain to a Luvite invitation with a CNAME record.",
+    category: "Features",
+    date: "2026-03-14",
+    icon: icons.globe,
+    content: (
+      <>
+        <p>If you own a domain, you can point it at your Luvite invitation. Your guests visit your domain and see your invitation directly &mdash; no <code>luvite.fun</code> in the URL.</p>
+        <h3>Before you start</h3>
+        <ul>
+          <li>You need a published invitation (publish first, then set up the domain).</li>
+          <li>You need access to your domain&apos;s DNS settings. Your domain registrar (Namecheap, GoDaddy, Cloudflare, Google Domains, etc.) has a DNS management panel.</li>
+        </ul>
+        <h3>Step 1: Open the editor sidebar</h3>
+        <p>Go to the editor for your invitation. In the right panel, scroll down to the <strong>Custom Domain</strong> section below the invite link field.</p>
+        <h3>Step 2: Enter your domain</h3>
+        <p>Type the domain you want to use. For example: <code>invite.yoursite.com</code> or <code>wedding.example.com</code>. Then select <strong>Save</strong>.</p>
+        <p>Luvite checks your DNS right away. If the CNAME isn&apos;t set up yet, you&apos;ll see a yellow &quot;Pending DNS verification&quot; status. That&apos;s expected.</p>
+        <h3>Step 3: Add a CNAME record</h3>
+        <p>Go to your DNS settings and add a <strong>CNAME</strong> record:</p>
+        <ul>
+          <li><strong>Host / Name</strong> &mdash; The subdomain part of your domain. For <code>invite.yoursite.com</code>, enter <code>invite</code>.</li>
+          <li><strong>Points to / Value</strong> &mdash; <code>luvite.fun</code></li>
+          <li><strong>TTL</strong> &mdash; Auto or 300 (doesn&apos;t matter much)</li>
+        </ul>
+        <h3>Step 4: Verify</h3>
+        <p>Back in the editor sidebar, select <strong>Re-check</strong>. If DNS has propagated, the status dot turns green and your domain is live. If it&apos;s still yellow, wait and try again &mdash; DNS changes can take up to 48 hours, though most finish within a few minutes.</p>
+        <h3>What happens after verification</h3>
+        <p>Guests who visit your domain see your invitation. The RSVP form works normally &mdash; Luvite figures out which invitation to load based on the domain.</p>
+        <h3>Removing a domain</h3>
+        <p>In the editor sidebar, select <strong>Remove</strong> next to your domain. The domain disconnects immediately. You can also delete the CNAME record from your DNS.</p>
+        <h3>Good to know</h3>
+        <ul>
+          <li>Each domain can point to one invitation only.</li>
+          <li>You can&apos;t use a <code>luvite.fun</code> subdomain as a custom domain &mdash; those are reserved.</li>
+          <li>If you change the domain later, you&apos;ll need to update your DNS records too.</li>
+          <li>Your invitation&apos;s <code>.luvite.fun</code> subdomain still works alongside the custom domain.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "profile",
+    title: "Manage invitations from your profile",
+    description: "View all your invitations, check RSVP responses, copy links, and see domain status.",
+    category: "Creating Invitations",
+    date: "2026-03-12",
+    icon: icons.users,
+    content: (
+      <>
+        <p>Your profile page is where you manage everything you&apos;ve published. Go to <code>/profile</code> or select <strong>Profile &amp; RSVPs</strong> from the dropdown in the editor.</p>
+        <h3>Invitations tab</h3>
+        <p>Lists every invitation you own, sorted by last updated. For each one you can:</p>
+        <ul>
+          <li><strong>Edit</strong> &mdash; Opens the invitation in the editor.</li>
+          <li><strong>View</strong> &mdash; Opens the published invitation.</li>
+          <li><strong>Copy Link</strong> &mdash; Copies the invitation URL to your clipboard.</li>
+        </ul>
+        <p>If you&apos;ve connected a custom domain, you&apos;ll see it next to the slug with a status dot:</p>
+        <ul>
+          <li><strong>Green dot</strong> &mdash; Domain is verified and working.</li>
+          <li><strong>Yellow dot</strong> &mdash; Domain is saved but DNS isn&apos;t verified yet.</li>
+        </ul>
+        <h3>RSVPs tab</h3>
+        <p>Shows every RSVP response across all your invitations. At the top you&apos;ll see summary counts: how many guests are attending, declined, or undecided (maybe). The table below lists each response with the guest&apos;s name, email, attendance status, meal preference, message, and date.</p>
+        <h3>Settings tab</h3>
+        <p>Shows your account details and has a sign-out button.</p>
+      </>
+    ),
+  },
+  {
+    id: "duplicate-delete",
+    title: "Duplicate or delete an invitation",
+    description: "Copy an existing design to reuse it, or remove an invitation you no longer need.",
+    category: "Creating Invitations",
+    date: "2026-03-11",
+    icon: icons.edit,
+    content: (
+      <>
+        <p>The editor toolbar has a three-dot menu (top right, next to your profile icon) with options to duplicate or delete the current invitation.</p>
+        <h3>Duplicate</h3>
+        <p>Select <strong>Duplicate</strong> from the menu. Luvite copies the current design and appends <code>-copy</code> to the slug. You&apos;ll see a notification confirming the duplication. Change the slug to something unique and publish when you&apos;re ready.</p>
+        <p>This is useful when you want to create a variation of an existing invitation &mdash; for example, a version in a different language or for a different event at the same venue.</p>
+        <h3>Delete</h3>
+        <p>Select <strong>Delete</strong> from the menu. You&apos;ll get a confirmation prompt. Once deleted, the invitation URL stops working and any connected custom domain is released. This can&apos;t be undone.</p>
       </>
     ),
   },
