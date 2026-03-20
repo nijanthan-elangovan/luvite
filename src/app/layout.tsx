@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import HelpButton from "@/components/HelpButton";
+import { ToastProvider } from "@/components/Toast";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -74,8 +75,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} ${inter.variable} antialiased`}>
-        {children}
-        <HelpButton />
+        <ToastProvider>
+          {children}
+          <HelpButton />
+        </ToastProvider>
       </body>
     </html>
   );

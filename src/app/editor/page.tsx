@@ -5,6 +5,7 @@ import "@puckeditor/core/puck.css";
 import { puckConfig } from "@/lib/puck.config";
 import { templates, type Template } from "@/lib/templates";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/Toast";
 
 const INITIAL_DATA: Data = {
   root: { props: {} },
@@ -13,7 +14,6 @@ const INITIAL_DATA: Data = {
 };
 
 type User = { id: number; name: string; email: string };
-type PublishNotice = { type: "success" | "error" | "info"; text: string } | null;
 
 function normalizeSlug(value: string) {
   return value
@@ -220,7 +220,6 @@ function ThreeDotMenu({ onDelete, onDuplicate }: { onDelete: () => void; onDupli
         }}>
           {[
             { label: "Duplicate", action: () => { onDuplicate(); setOpen(false); } },
-            { label: "Unpublish", action: () => { setOpen(false); } },
             { label: "Delete", action: () => { onDelete(); setOpen(false); }, danger: true },
           ].map((item) => (
             <button
@@ -255,9 +254,12 @@ function ThreeDotMenu({ onDelete, onDuplicate }: { onDelete: () => void; onDupli
 export default function AdminPage() {
   const [slug, setSlug] = useState("");
   const [initialData, setInitialData] = useState<Data>(INITIAL_DATA);
-  const [publishNotice, setPublishNotice] = useState<PublishNotice>(null);
+  const [publishNotice, setPublishNotice] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [editorKey, setEditorKey] = useState(0);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -265,7 +267,8 @@ export default function AdminPage() {
         if (!res.ok) { window.location.href = "/login?next=/editor"; return null; }
         return res.json();
       })
-      .then((data) => { if (data?.user) setUser(data.user); });
+      .then((data) => { if (data?.user) setUser(data.user); })
+      .catch(() => { window.location.href = "/login?next=/editor"; });
   }, []);
 
   useEffect(() => {
@@ -273,7 +276,12 @@ export default function AdminPage() {
     const templateId = params.get("template");
     if (templateId) {
       const tpl = templates.find((t) => t.id === templateId);
-      if (tpl) { setInitialData(tpl.data); setEditorKey((k) => k + 1); return; }
+      if (tpl) {
+        setInitialData(tpl.data);
+        setEditorKey((k) => k + 1);
+        setIsLoading(false);
+        return;
+      }
     }
     const s = params.get("slug");
     if (s) {
@@ -281,74 +289,131 @@ export default function AdminPage() {
       fetch(`/api/invitations?slug=${encodeURIComponent(s)}&ownerOnly=1`)
         .then((r) => (r.ok ? r.json() : null))
         .then((inv) => {
-          if (inv?.data) { setInitialData(inv.data); setEditorKey((k) => k + 1); }
-          else setPublishNotice({ type: "error", text: "Not found or not owned by you" });
-        });
+          if (inv?.data) {
+            setInitialData(inv.data);
+            setEditorKey((k) => k + 1);
+          } else {
+            toast("error", "Invitation not found or not owned by you");
+          }
+        })
+        .catch(() => toast("error", "Failed to load invitation"))
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   function loadTemplate(tpl: Template) {
     setInitialData(tpl.data);
     setEditorKey((k) => k + 1);
-    setPublishNotice({ type: "info", text: `Loaded: ${tpl.name}` });
+    toast("success", `Template loaded: ${tpl.name}`);
   }
 
   const handlePublish = useCallback(
     async (data: Data) => {
       const finalSlug = normalizeSlug(slug);
       if (!finalSlug) {
+        toast("error", "Enter an invite link name before publishing");
         setPublishNotice({ type: "error", text: "Add your invite link name first." });
         return;
       }
-      setPublishNotice({ type: "info", text: "Publishing your invite..." });
+      setIsPublishing(true);
+      setPublishNotice({ type: "info", text: "Publishing..." });
       setSlug(finalSlug);
-      const res = await fetch("/api/invitations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: finalSlug, data }),
-      });
-      if (res.ok) {
-        const host = window.location.hostname;
-        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
-        const url =
-          host === "localhost"
-            ? `/invite/${finalSlug}`
-            : `https://${finalSlug}.${rootDomain}`;
-        setPublishNotice({ type: "success", text: `Your invite is live: ${url}` });
-      } else {
-        const p = await res.json().catch(() => ({}));
-        setPublishNotice({ type: "error", text: p.error || "Could not publish. Please try again." });
+      try {
+        const res = await fetch("/api/invitations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: finalSlug, data }),
+        });
+        if (res.ok) {
+          const host = window.location.hostname;
+          const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+          const url =
+            host === "localhost"
+              ? `/invite/${finalSlug}`
+              : `https://${finalSlug}.${rootDomain}`;
+          setPublishNotice({ type: "success", text: `Live at: ${url}` });
+          toast("success", "Invitation published!");
+        } else {
+          const p = await res.json().catch(() => ({}));
+          const msg = p.error || "Could not publish. Please try again.";
+          setPublishNotice({ type: "error", text: msg });
+          toast("error", msg);
+        }
+      } catch {
+        toast("error", "Network error. Check your connection and try again.");
+        setPublishNotice({ type: "error", text: "Network error." });
+      } finally {
+        setIsPublishing(false);
       }
-      
     },
-    [slug]
+    [slug, toast]
   );
 
   async function handleDelete() {
     const s = normalizeSlug(slug);
-    if (!s || !confirm(`Delete "${s}"?`)) return;
-    const res = await fetch(`/api/invitations?slug=${encodeURIComponent(s)}`, { method: "DELETE" });
-    if (res.ok) {
-      setInitialData(INITIAL_DATA);
-      setSlug("");
-      setEditorKey((k) => k + 1);
-      setPublishNotice({ type: "success", text: "Deleted." });
-    } else setPublishNotice({ type: "error", text: "Delete failed." });
-    
+    if (!s || !confirm(`Delete "${s}"? This can't be undone.`)) return;
+    try {
+      const res = await fetch(`/api/invitations?slug=${encodeURIComponent(s)}`, { method: "DELETE" });
+      if (res.ok) {
+        setInitialData(INITIAL_DATA);
+        setSlug("");
+        setEditorKey((k) => k + 1);
+        toast("success", "Invitation deleted");
+      } else {
+        toast("error", "Failed to delete invitation");
+      }
+    } catch {
+      toast("error", "Network error. Could not delete.");
+    }
   }
 
   function handleDuplicate() {
     setSlug(slug ? `${slug}-copy` : "copy");
-    setPublishNotice({ type: "info", text: "Copied. Update the invite link name, then publish." });
-    
+    toast("info", "Duplicated. Change the link name, then publish.");
   }
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // continue to redirect even if logout fails
+    }
     window.location.href = "/login";
   }
 
+  function handleCopyLink() {
+    const finalSlug = normalizeSlug(slug);
+    if (!finalSlug) {
+      toast("error", "Set an invite link name first");
+      return;
+    }
+    const host = window.location.hostname;
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+    const url =
+      host === "localhost"
+        ? `${window.location.origin}/invite/${finalSlug}`
+        : `https://${finalSlug}.${rootDomain}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast("success", "Link copied to clipboard"),
+      () => toast("error", "Could not copy link"),
+    );
+  }
+
   const templatesPlugin = createTemplatesPlugin(loadTemplate);
+
+  if (isLoading) {
+    return (
+      <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 32, height: 32, border: "3px solid #e5e5e5", borderTopColor: "#C9A84C", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
+          <p style={{ marginTop: 12, color: "#888", fontSize: 14 }}>Loading editor...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -425,14 +490,41 @@ export default function AdminPage() {
                             outline: "none",
                           }}
                         />
+                        {shownValue && !/^[a-z0-9-]*$/.test(shownValue) && (
+                          <div style={{ fontSize: 11, color: "#d97706" }}>
+                            Only lowercase letters, numbers, and hyphens allowed
+                          </div>
+                        )}
                         <div style={{ fontSize: 12, color: "#6b7280" }}>
-                          This is where your invite will be visible:
+                          Your invite will be visible at:
                         </div>
-                        <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                          https://{normalized || "meera-arjun"}.{rootDomain}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ fontSize: 12, color: "#9ca3af", flex: 1 }}>
+                            https://{normalized || "meera-arjun"}.{rootDomain}
+                          </div>
+                          {normalized && (
+                            <button
+                              type="button"
+                              onClick={handleCopyLink}
+                              style={{
+                                background: "none",
+                                border: "1px solid #d1d5db",
+                                borderRadius: 6,
+                                padding: "3px 8px",
+                                cursor: "pointer",
+                                fontSize: 11,
+                                color: "#6b7280",
+                              }}
+                            >
+                              Copy
+                            </button>
+                          )}
                         </div>
                         {publishNotice ? (
                           <div style={{ fontSize: 12, color: statusColor }}>
+                            {isPublishing && (
+                              <span style={{ display: "inline-block", width: 12, height: 12, border: "2px solid #d1d5db", borderTopColor: statusColor, borderRadius: "50%", animation: "spin 0.8s linear infinite", marginRight: 6, verticalAlign: "middle" }} />
+                            )}
                             {publishNotice.text}
                           </div>
                         ) : null}
@@ -449,7 +541,7 @@ export default function AdminPage() {
           plugins={[templatesPlugin]}
         />
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useToast } from "@/components/Toast";
 
 type User = { id: number; name: string; email: string };
 type Invitation = { slug: string; created_at: string; updated_at: string };
@@ -22,9 +23,13 @@ export default function ProfilePage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("invitations");
+  const { toast } = useToast();
 
-  useEffect(() => {
+  function loadProfile() {
+    setLoading(true);
+    setError(null);
     fetch("/api/profile")
       .then(async (res) => {
         if (!res.ok) {
@@ -42,8 +47,15 @@ export default function ProfilePage() {
         setInvitations(data.invitations || []);
         setRsvps(data.rsvps || []);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
-  }, []);
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : "Failed to load";
+        setError(msg);
+        toast("error", msg);
+      })
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { loadProfile(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "invitations", label: `Invitations (${invitations.length})` },
@@ -76,13 +88,13 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="font-display text-3xl font-bold text-charcoal">Profile</h1>
-              {user ? (
+              {loading ? (
+                <div className="mt-2 h-4 w-48 animate-pulse rounded bg-gold/10" />
+              ) : user ? (
                 <p className="mt-1 text-charcoal/60">
                   {user.name} &middot; {user.email}
                 </p>
-              ) : (
-                <p className="mt-1 text-charcoal/60">Loading...</p>
-              )}
+              ) : null}
             </div>
             <a
               href="/editor"
@@ -91,7 +103,17 @@ export default function ProfilePage() {
               + New Invitation
             </a>
           </div>
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="mt-3 flex items-center gap-3">
+              <p className="text-sm text-red-600">{error}</p>
+              <button
+                onClick={loadProfile}
+                className="text-sm font-medium text-gold hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -113,9 +135,19 @@ export default function ProfilePage() {
 
         {/* Tab content */}
         <div className="rounded-xl border border-gold/20 bg-white p-6">
-          {tab === "invitations" && <InvitationsTab invitations={invitations} />}
-          {tab === "rsvps" && <RSVPsTab rsvps={rsvps} />}
-          {tab === "settings" && <SettingsTab user={user} />}
+          {loading ? (
+            <div className="space-y-4 py-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 animate-pulse rounded-lg bg-gold/5" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {tab === "invitations" && <InvitationsTab invitations={invitations} />}
+              {tab === "rsvps" && <RSVPsTab rsvps={rsvps} />}
+              {tab === "settings" && <SettingsTab user={user} />}
+            </>
+          )}
         </div>
       </div>
     </main>
@@ -123,10 +155,26 @@ export default function ProfilePage() {
 }
 
 function InvitationsTab({ invitations }: { invitations: Invitation[] }) {
+  const { toast } = useToast();
+
+  function copyLink(slug: string) {
+    const host = typeof window !== "undefined" ? window.location.hostname : "";
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+    const url =
+      host === "localhost"
+        ? `${window.location.origin}/invite/${slug}`
+        : `https://${slug}.${rootDomain}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast("success", "Link copied!"),
+      () => toast("error", "Could not copy link"),
+    );
+  }
+
   if (invitations.length === 0) {
     return (
       <div className="py-12 text-center">
         <p className="text-charcoal/50">No invitations yet.</p>
+        <p className="mt-1 text-sm text-charcoal/40">Create one to get started &mdash; pick a template or build from scratch.</p>
         <a
           href="/editor"
           className="mt-4 inline-block rounded-full bg-gold px-6 py-2 text-sm font-semibold text-white"
@@ -152,13 +200,19 @@ function InvitationsTab({ invitations }: { invitations: Invitation[] }) {
             <tr key={inv.slug} className="border-b border-gold/10 last:border-0">
               <td className="py-3 font-medium text-charcoal">{inv.slug}</td>
               <td className="py-3 text-charcoal/60">{new Date(inv.updated_at).toLocaleString()}</td>
-              <td className="py-3">
-                <a href={`/editor?slug=${inv.slug}`} className="mr-3 text-gold hover:underline">
+              <td className="flex gap-3 py-3">
+                <a href={`/editor?slug=${inv.slug}`} className="text-gold hover:underline">
                   Edit
                 </a>
                 <a href={`/invite/${inv.slug}`} className="text-gold hover:underline">
                   View
                 </a>
+                <button
+                  onClick={() => copyLink(inv.slug)}
+                  className="text-gold hover:underline"
+                >
+                  Copy Link
+                </button>
               </td>
             </tr>
           ))}
@@ -173,14 +227,14 @@ function RSVPsTab({ rsvps }: { rsvps: RSVP[] }) {
     return (
       <div className="py-12 text-center">
         <p className="text-charcoal/50">No RSVP submissions yet.</p>
-        <p className="mt-1 text-sm text-charcoal/40">RSVPs will appear here once guests respond.</p>
+        <p className="mt-1 text-sm text-charcoal/40">Share your invitation link with guests to start collecting responses.</p>
       </div>
     );
   }
 
   const attending = rsvps.filter((r) => r.attending === "yes").length;
   const declined = rsvps.filter((r) => r.attending === "no").length;
-  const maybe = rsvps.length - attending - declined;
+  const maybe = rsvps.filter((r) => r.attending === "maybe").length;
 
   return (
     <div>
@@ -229,7 +283,7 @@ function RSVPsTab({ rsvps }: { rsvps: RSVP[] }) {
                           : "bg-amber-100 text-amber-700"
                     }`}
                   >
-                    {rsvp.attending}
+                    {rsvp.attending === "yes" ? "Attending" : rsvp.attending === "no" ? "Declined" : "Maybe"}
                   </span>
                 </td>
                 <td className="py-3 text-charcoal/60">{rsvp.meal || "-"}</td>
@@ -245,8 +299,16 @@ function RSVPsTab({ rsvps }: { rsvps: RSVP[] }) {
 }
 
 function SettingsTab({ user }: { user: User | null }) {
+  const [loggingOut, setLoggingOut] = useState(false);
+  const { toast } = useToast();
+
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      toast("error", "Logout failed, redirecting anyway");
+    }
     window.location.href = "/login";
   }
 
@@ -268,9 +330,10 @@ function SettingsTab({ user }: { user: User | null }) {
         <h3 className="font-display text-lg font-bold text-charcoal">Danger Zone</h3>
         <button
           onClick={handleLogout}
-          className="mt-3 rounded-full border border-red-300 px-5 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+          disabled={loggingOut}
+          className="mt-3 rounded-full border border-red-300 px-5 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60"
         >
-          Sign Out
+          {loggingOut ? "Signing out..." : "Sign Out"}
         </button>
       </div>
     </div>

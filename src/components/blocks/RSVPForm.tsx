@@ -71,7 +71,7 @@ export default function RSVPForm({
 
       setSubmitted(true);
       form.reset();
-      console.log("RSVP saved to DB", payload);
+      setTimeout(() => setSubmitted(false), 5000);
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : "Failed to save RSVP"
@@ -144,6 +144,7 @@ export default function RSVPForm({
           }}
         >
           <option value="yes">Attending</option>
+          <option value="maybe">Maybe</option>
           <option value="no">Not attending</option>
         </select>
 
@@ -192,7 +193,13 @@ export default function RSVPForm({
             opacity: isSaving ? 0.7 : 1,
           }}
         >
-          {isSaving ? "Saving..." : buttonText}
+          {isSaving ? (
+            <>
+              <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "rsvp-spin 0.7s linear infinite", verticalAlign: "middle", marginRight: 8 }} />
+              Saving...
+              <style>{`@keyframes rsvp-spin { to { transform: rotate(360deg); } }`}</style>
+            </>
+          ) : buttonText}
         </button>
       </form>
     </section>
