@@ -92,7 +92,7 @@ export default function AuthorPage() {
         </Link>
         <div className="flex items-center gap-6">
           <Link href="/help" className="text-sm font-medium text-gold transition-colors">
-            Help Center
+            Help
           </Link>
           <Link href="/templates" className="text-sm text-charcoal/60 transition-colors hover:text-charcoal">
             Templates
@@ -113,7 +113,7 @@ export default function AuthorPage() {
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            Help Center
+            Help
           </Link>
         </div>
       </div>

@@ -420,7 +420,7 @@ export default function HelpCenterPage() {
             }}
             className="text-sm font-medium text-gold transition-colors"
           >
-            Help Center
+            Help
           </Link>
           <Link href="/templates" className="text-sm text-charcoal/60 transition-colors hover:text-charcoal">
             Templates
