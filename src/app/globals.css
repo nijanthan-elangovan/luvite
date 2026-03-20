@@ -40,3 +40,34 @@ html {
   background-color: var(--gold);
   color: white;
 }
+
+/* Help center article styles */
+.help-article h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--charcoal);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.help-article p {
+  margin-bottom: 0.75rem;
+}
+
+.help-article ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.help-article li {
+  margin-bottom: 0.35rem;
+}
+
+.help-article code {
+  background: var(--cream);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}

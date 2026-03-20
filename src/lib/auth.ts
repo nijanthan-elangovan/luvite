@@ -5,7 +5,10 @@ const AUTH_COOKIE = "luvite_auth";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14;
 
 function getAuthSecret() {
-  return process.env.AUTH_SECRET || "luvite-dev-secret-change-me";
+  if (!process.env.AUTH_SECRET) {
+    throw new Error("AUTH_SECRET environment variable is required");
+  }
+  return process.env.AUTH_SECRET;
 }
 
 function base64UrlEncode(value: string) {
