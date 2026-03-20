@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/components/Toast";
 
 type User = { id: number; name: string; email: string };
-type Invitation = { slug: string; created_at: string; updated_at: string };
+type Invitation = { slug: string; custom_domain: string | null; domain_verified: number; created_at: string; updated_at: string };
 type RSVP = {
   id: number;
   invitation_slug: string;
@@ -191,6 +191,7 @@ function InvitationsTab({ invitations }: { invitations: Invitation[] }) {
         <thead>
           <tr className="border-b border-gold/20 text-charcoal/60">
             <th className="py-2.5 font-medium">Slug</th>
+            <th className="py-2.5 font-medium">Custom Domain</th>
             <th className="py-2.5 font-medium">Last Updated</th>
             <th className="py-2.5 font-medium">Actions</th>
           </tr>
@@ -199,6 +200,20 @@ function InvitationsTab({ invitations }: { invitations: Invitation[] }) {
           {invitations.map((inv) => (
             <tr key={inv.slug} className="border-b border-gold/10 last:border-0">
               <td className="py-3 font-medium text-charcoal">{inv.slug}</td>
+              <td className="py-3 text-charcoal/60">
+                {inv.custom_domain ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${
+                        inv.domain_verified ? "bg-emerald-500" : "bg-amber-400"
+                      }`}
+                    />
+                    <span>{inv.custom_domain}</span>
+                  </span>
+                ) : (
+                  <span className="text-charcoal/30">&mdash;</span>
+                )}
+              </td>
               <td className="py-3 text-charcoal/60">{new Date(inv.updated_at).toLocaleString()}</td>
               <td className="flex gap-3 py-3">
                 <a href={`/editor?slug=${inv.slug}`} className="text-gold hover:underline">

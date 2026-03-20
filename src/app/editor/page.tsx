@@ -344,6 +344,192 @@ function SlugField({
   );
 }
 
+/* ═══════════════════ Custom Domain Field ═══════════════════ */
+
+function CustomDomainField({ slugRef }: { slugRef: MutableRefObject<string> }) {
+  const [domain, setDomain] = useState("");
+  const [verified, setVerified] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cnameTarget = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+
+  // Load current domain on mount
+  useEffect(() => {
+    const slug = slugRef.current;
+    if (!slug) { setLoaded(true); return; }
+    fetch(`/api/domains?slug=${encodeURIComponent(slug)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.customDomain) {
+          setDomain(data.customDomain);
+          setVerified(data.domainVerified);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function saveDomain() {
+    const slug = slugRef.current;
+    if (!slug) { setError("Publish your invitation first"); return; }
+    setError(null);
+    setChecking(true);
+    try {
+      const res = await fetch("/api/domains", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, domain: domain.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to save domain");
+        return;
+      }
+      setDomain(data.customDomain || "");
+      setVerified(data.domainVerified || false);
+      if (!data.domainVerified) {
+        setError("Domain saved but DNS not verified yet. Add the CNAME record and check again.");
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function recheckDNS() {
+    const slug = slugRef.current;
+    if (!slug) return;
+    setError(null);
+    setChecking(true);
+    try {
+      const res = await fetch("/api/domains", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVerified(data.domainVerified);
+        if (!data.domainVerified) {
+          setError("CNAME not found yet. It can take up to 48 hours for DNS to propagate.");
+        }
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function removeDomain() {
+    const slug = slugRef.current;
+    if (!slug) return;
+    setChecking(true);
+    try {
+      await fetch(`/api/domains?slug=${encodeURIComponent(slug)}`, { method: "DELETE" });
+      setDomain("");
+      setVerified(false);
+      setError(null);
+    } catch {
+      setError("Failed to remove");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  if (!loaded) return null;
+
+  return (
+    <div style={{ display: "grid", gap: 8, marginTop: 4, paddingTop: 12, borderTop: "1px solid #e5e7eb" }}>
+      <label style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
+        Custom domain (optional)
+      </label>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          type="text"
+          value={domain}
+          onChange={(e) => { setDomain(e.target.value); setError(null); }}
+          placeholder="invite.yoursite.com"
+          style={{
+            flex: 1,
+            border: "1px solid #d1d5db",
+            borderRadius: 8,
+            padding: "8px 10px",
+            fontSize: 13,
+            outline: "none",
+          }}
+        />
+        <button
+          type="button"
+          onClick={saveDomain}
+          disabled={checking || !domain.trim()}
+          style={{
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 12px",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: checking ? "wait" : "pointer",
+            background: "#C9A84C",
+            color: "#fff",
+            opacity: checking || !domain.trim() ? 0.6 : 1,
+          }}
+        >
+          {checking ? "..." : "Save"}
+        </button>
+      </div>
+
+      {domain && (
+        <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{
+            display: "inline-block",
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: verified ? "#16a34a" : "#eab308",
+          }} />
+          <span style={{ color: verified ? "#16a34a" : "#92400e" }}>
+            {verified ? "Verified and active" : "Pending DNS verification"}
+          </span>
+          {!verified && (
+            <button
+              type="button"
+              onClick={recheckDNS}
+              disabled={checking}
+              style={{ background: "none", border: "none", color: "#C9A84C", cursor: "pointer", fontSize: 12, fontWeight: 600, textDecoration: "underline" }}
+            >
+              Re-check
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={removeDomain}
+            disabled={checking}
+            style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, marginLeft: "auto" }}
+          >
+            Remove
+          </button>
+        </div>
+      )}
+
+      {!verified && domain && (
+        <div style={{ fontSize: 11, color: "#6b7280", background: "#f9fafb", borderRadius: 8, padding: "8px 10px", lineHeight: 1.5 }}>
+          Add a <strong>CNAME</strong> record in your DNS settings:
+          <div style={{ marginTop: 4, fontFamily: "monospace", fontSize: 11, color: "#374151" }}>
+            {domain.split(".")[0]} &rarr; <strong>{cnameTarget}</strong>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ fontSize: 12, color: "#dc2626" }}>{error}</div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════ Main Page ═══════════════════ */
 
 export default function AdminPage() {
@@ -559,6 +745,11 @@ export default function AdminPage() {
                       onCopyLink={handleCopyLink}
                     />
                   ),
+                },
+                customDomain: {
+                  type: "custom",
+                  label: "Custom Domain",
+                  render: () => <CustomDomainField slugRef={slugRef} />,
                 },
               },
             },

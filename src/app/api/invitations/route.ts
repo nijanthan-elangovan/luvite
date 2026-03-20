@@ -9,8 +9,11 @@ async function ensureInvitationsSchema() {
       slug VARCHAR(255) NOT NULL PRIMARY KEY,
       data JSON NOT NULL,
       user_id BIGINT UNSIGNED NULL,
+      custom_domain VARCHAR(255) NULL,
+      domain_verified TINYINT(1) NOT NULL DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY idx_custom_domain (custom_domain)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
@@ -19,10 +22,34 @@ async function ensureInvitationsSchema() {
   } catch {
     // column already exists
   }
+  try {
+    await pool.query("ALTER TABLE invitations ADD COLUMN custom_domain VARCHAR(255) NULL, ADD UNIQUE KEY idx_custom_domain (custom_domain)");
+  } catch {
+    // column already exists
+  }
+  try {
+    await pool.query("ALTER TABLE invitations ADD COLUMN domain_verified TINYINT(1) NOT NULL DEFAULT 0");
+  } catch {
+    // column already exists
+  }
 }
 
 // GET /api/invitations?slug=xxx&ownerOnly=1
+// GET /api/invitations?slugByDomain=xxx (resolve custom domain to slug)
 export async function GET(request: NextRequest) {
+  const slugByDomain = request.nextUrl.searchParams.get("slugByDomain");
+  if (slugByDomain) {
+    await ensureInvitationsSchema();
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT slug FROM invitations WHERE custom_domain = ? AND domain_verified = 1 LIMIT 1",
+      [slugByDomain.toLowerCase()]
+    );
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+    return NextResponse.json({ slug: rows[0].slug });
+  }
+
   const slug = request.nextUrl.searchParams.get("slug");
   const ownerOnly = request.nextUrl.searchParams.get("ownerOnly") === "1";
 
@@ -58,6 +85,8 @@ export async function GET(request: NextRequest) {
     slug: row.slug,
     data: typeof row.data === "string" ? JSON.parse(row.data) : row.data,
     userId: row.user_id ?? null,
+    customDomain: row.custom_domain ?? null,
+    domainVerified: Boolean(row.domain_verified),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });

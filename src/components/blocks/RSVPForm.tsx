@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface RSVPFormProps {
   title?: string;
@@ -9,11 +9,14 @@ export interface RSVPFormProps {
   showMealOptions?: boolean;
 }
 
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "luvite.fun";
+
 function resolveInvitationSlug() {
   if (typeof window === "undefined") return "";
 
+  // Check URL path first (/invite/slug)
   const pathParts = window.location.pathname.split("/").filter(Boolean);
-  if (pathParts[0] === "invite" && pathParts[1]) {
+  if (pathParts[0] === "invite" && pathParts[1] && pathParts[1] !== "_domain") {
     return pathParts[1];
   }
 
@@ -22,10 +25,42 @@ function resolveInvitationSlug() {
   const isMainDomain = mainDomains.some((domain) => hostname === domain || hostname === `${domain}:3000`);
 
   if (!isMainDomain) {
-    return hostname.split(".")[0] || "";
+    // Check if it's a subdomain of luvite
+    if (hostname.endsWith(`.${ROOT_DOMAIN}`) || hostname.endsWith(".localhost")) {
+      return hostname.split(".")[0] || "";
+    }
+    // Custom domain — slug is unknown, will be resolved via API
+    return "";
   }
 
   return "";
+}
+
+function useResolvedSlug() {
+  const [slug, setSlug] = useState(() => resolveInvitationSlug());
+
+  useEffect(() => {
+    // If slug is empty and we're on a custom domain, look it up
+    if (slug) return;
+    if (typeof window === "undefined") return;
+
+    const hostname = window.location.hostname;
+    const mainDomains = ["luvite.fun", "www.luvite.fun", "luvite.in", "www.luvite.in", "localhost"];
+    const isMainDomain = mainDomains.some((d) => hostname === d || hostname === `${d}:3000`);
+    const isSubdomain = hostname.endsWith(`.${ROOT_DOMAIN}`) || hostname.endsWith(".localhost");
+
+    if (isMainDomain || isSubdomain) return;
+
+    // This is a custom domain — resolve via API
+    fetch(`/api/invitations?slugByDomain=${encodeURIComponent(hostname)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.slug) setSlug(data.slug);
+      })
+      .catch(() => {});
+  }, [slug]);
+
+  return slug;
 }
 
 export default function RSVPForm({
@@ -34,6 +69,7 @@ export default function RSVPForm({
   successMessage = "Thanks for your RSVP!",
   showMealOptions = false,
 }: RSVPFormProps) {
+  const resolvedSlug = useResolvedSlug();
   const [submitted, setSubmitted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +88,7 @@ export default function RSVPForm({
       meal: String(formData.get("meal") || ""),
       message: String(formData.get("message") || ""),
       sourcePath: typeof window !== "undefined" ? window.location.pathname : "",
-      invitationSlug: resolveInvitationSlug(),
+      invitationSlug: resolvedSlug,
     };
 
     try {

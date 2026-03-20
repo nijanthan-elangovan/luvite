@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const [invitations] = await pool.query<RowDataPacket[]>(
-    `SELECT slug, created_at, updated_at FROM invitations WHERE user_id = ? ORDER BY updated_at DESC`,
+    `SELECT slug, custom_domain, domain_verified, created_at, updated_at FROM invitations WHERE user_id = ? ORDER BY updated_at DESC`,
     [user.userId]
   );
 
